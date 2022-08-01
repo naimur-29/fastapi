@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Response, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-import psycopg2
-from  psycopg2.extras import RealDictCursor
+# import psycopg2
+# from  psycopg2.extras import RealDictCursor
 import time
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from . import models
 from .database import engine, get_db
+from . import schemas;
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -25,11 +25,6 @@ app.add_middleware(
     allow_methods = ["*"],
     allow_headers = ["*"]
 )
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = False
 
 # CONNECTION TO THE DATABASE USING DEFAULT DRIVER
 # while True:
@@ -80,29 +75,29 @@ def root():
 #         return {f"post with id={id}": res}
 
 #USING ORM SQL ALCHEMY
-@app.get('/posts')
+@app.get('/posts', response_model=List[schemas.ResponsePostBase])
 def test_posts(db: Session = Depends(get_db)):
     res = db.query(models.Post).order_by(models.Post.created_at).all()
     
     if not res:
         raise HTTPException(status_code=404, detail="no post available!")
-    return {"posts": res}
+    return res
 
-@app.get("/posts/latest")
+@app.get("/posts/latest", response_model=schemas.ResponsePostBase)
 def get_latest_post(db: Session=Depends(get_db)):
     res = db.query(models.Post).order_by(models.Post.created_at.desc()).first()
     
     if not res:
         raise HTTPException(status_code=404, detail="no posts available!")
-    return {"latest post": res}
+    return res
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.ResponsePostBase)
 def get_post(id: int, db: Session=Depends(get_db)):
     res = db.query(models.Post).filter(models.Post.id == id).first()
     
     if not res:
         raise HTTPException(status_code=404, detail=f"post with id={id} doesn't exist!")
-    return {f"post with id={id}": res}
+    return res
 
 # POSTS
 # USING DEFAULT DRIVER
@@ -115,16 +110,17 @@ def get_post(id: int, db: Session=Depends(get_db)):
 #     return {"post created successfully": res}
 
 #USING ORM
-@app.post("/posts", status_code=201)
-def create_post(post: Post, db: Session=Depends(get_db)):
+@app.post("/posts", status_code=201, response_model=schemas.ResponsePostBase)
+def create_post(post: schemas.RequestPostCreate, db: Session=Depends(get_db)):
     res = models.Post(**post.dict())
     db.add(res)
     db.commit()
     db.refresh(res)
     
-    return {"post created successfully": res}
+    return res
 
 #DELETE
+#USING DEFAULT DRIVER
 # @app.delete("/posts/{id}", status_code=204)
 # def delete_post(id: int):
 #     cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *;""", (str(id)))
@@ -137,6 +133,16 @@ def create_post(post: Post, db: Session=Depends(get_db)):
 #         return Response(status_code=204)
 
 #USING ORM
+@app.delete("/posts/all", status_code=204)
+def delete_all(db: Session=Depends(get_db)):
+    res = db.query(models.Post)
+    
+    if not res.first():
+        raise HTTPException(status_code=404, detail="no post available!")
+    res.delete(synchronize_session=False)
+    db.commit()
+    return Response(status_code=204)
+
 @app.delete("/posts/{id}", status_code=204)
 def delete_post(id: int, db: Session=Depends(get_db)):
     res = db.query(models.Post).filter(models.Post.id == id)
@@ -148,7 +154,8 @@ def delete_post(id: int, db: Session=Depends(get_db)):
     return Response(status_code=204)
     
 #UPDATE
-@app.put("/posts/{id}", status_code=200)
+#USING DEFAULT DRIVER
+# @app.put("/posts/{id}", status_code=200)
 # def update_post(id: int, post: Post):
 #     cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *;""", (post.title, post.content, post.published, str(id)))
 #     res = cursor.fetchone()
@@ -160,11 +167,12 @@ def delete_post(id: int, db: Session=Depends(get_db)):
 #         return {"updated post": res}
 
 #USING ORM
-def update_post(id: int, post: Post, db: Session=Depends(get_db)):
+@app.put("/posts/{id}", status_code=200, response_model=schemas.ResponsePostBase)
+def update_post(id: int, post: schemas.RequestPostUpdate, db: Session=Depends(get_db)):
     res = db.query(models.Post).filter(models.Post.id == id)
     
     if not res.first():
         raise HTTPException(status_code=404, detail=f"post with id={id} doesn't exist!")
     res.update(post.dict(), synchronize_session=False)
     db.commit()
-    return {"updated post": res.first()}
+    return res.first()
