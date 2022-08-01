@@ -24,21 +24,21 @@ posts_db = [
         "id": 0,
         "title": "post title",
         "content": "post details...",
-        "published": false,
+        "published": False,
         "rating": 3
     },
     {
         "id": 1,
         "title": "post title",
         "content": "post details...",
-        "published": false,
+        "published": False,
         "rating": 3
     },
     {
         "id": 2,
         "title": "post title",
         "content": "post details...",
-        "published": false,
+        "published": False,
         "rating": 3
     }
 ]
