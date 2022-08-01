@@ -1,10 +1,47 @@
 from fastapi import FastAPI, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
 app = FastAPI()
 
-posts_db = list()
+# adding cors
+origins = [
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = origins,
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"]
+    
+)
+
+posts_db = [
+    {
+        "id": 0,
+        "title": "post title",
+        "content": "post details...",
+        "published": false,
+        "rating": 3
+    },
+    {
+        "id": 1,
+        "title": "post title",
+        "content": "post details...",
+        "published": false,
+        "rating": 3
+    },
+    {
+        "id": 2,
+        "title": "post title",
+        "content": "post details...",
+        "published": false,
+        "rating": 3
+    }
+]
 
 class Post(BaseModel):
     id: Optional[int] = None
