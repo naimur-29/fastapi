@@ -13,10 +13,10 @@ router = APIRouter(
 
 # GET
 @router.get("/", response_model=List[schemas.ResponsePostGet])
-def test_posts(db: Session = Depends(get_db), limit: int = 20, skip: int = 0, search: Optional[str] = ""):
+async def test_posts(db: Session = Depends(get_db), limit: int = 20, skip: int = 0, search: Optional[str] = ""):
     # res = db.query(models.Post).order_by(models.Post.created_at).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
     
-    res = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).order_by(models.Post.created_at).filter(models.Post.title.contains(search)).limit(int(limit)).offset(int(skip)).all()
+    res = await db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).order_by(models.Post.created_at).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
     
     if not res:
         raise HTTPException(status_code=404, detail="no post available!")
@@ -24,7 +24,7 @@ def test_posts(db: Session = Depends(get_db), limit: int = 20, skip: int = 0, se
 
 @router.get("/latest", response_model=List[schemas.ResponsePostGet])
 def get_latest_post(db: Session=Depends(get_db), limit: int = 10, skip: int = 0):
-    res = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).order_by(models.Post.created_at.desc()).limit(int(limit)).offset(int(skip)).all()
+    res = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).order_by(models.Post.created_at.desc()).limit(limit).offset(skip).all()
     
     if not res:
         raise HTTPException(status_code=404, detail="no posts available!")
